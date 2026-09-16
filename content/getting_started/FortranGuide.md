@@ -1,6 +1,6 @@
 ---
 title: "Fortran Guide"
-date: "2026-08-10"
+date: "2026-09-16"
 draft: false
 weight: 30
 ---
@@ -43,6 +43,52 @@ $ flang -flto program-enzyme.bc -o program
 Both routes are exercised by the tests in
 [`enzyme/test/Fortran`](https://github.com/EnzymeAD/Enzyme/tree/main/enzyme/test/Fortran).
 The plugin route is flang-only; with ifx use the `opt` pipeline above.
+
+### Using Fortran Package Manager (fpm)
+
+Enzyme provides an
+[`fpm.toml`](https://github.com/EnzymeAD/Enzyme/blob/main/fpm.toml) file,
+allowing it to be easily integrated into projects that use the
+[Fortran Package Manager (fpm)](https://fpm.fortran-lang.org/).
+To make use of Enzyme via fpm, ensure the Flang compiler is in your `PATH`.
+
+#### Flang plugin
+
+To make use of Enzyme's Flang plugin, set the `ENZYME_PLUGIN` environment
+variable to be the appropriate path, i.e.,
+```sh
+$ export ENZYME_PLUGIN=/path/to/Enzyme/FlangEnzyme-${VN}.so
+```
+where `${VN}` is the LLVM version you are using. Add the following to the
+`fpm.toml` for your project:
+```toml
+[features]
+enzyme.flang.flags = "-fpass-plugin=$ENZYME_PLUGIN"
+enzyme.preprocess.cpp.macros = ["HAS_ENZYME"]
+```
+If you are on a non-Unix system then you may need to hard-code `ENZYME_PLUGIN`
+rather than using an environment variable.
+
+Note that this approach will only work if you have a single source file. If your
+project contains multiple Fortran files then use the following approach.
+
+#### LLD plugin
+
+To make use of Enzyme's LLD plugin, set the `ENZYME_LLD_PLUGIN` environment
+variable to be the appropriate path, i.e.,
+```sh
+$ export ENZYME_LLD_PLUGIN=/path/to/Enzyme/LLDEnzyme-${VN}.so
+```
+where `${VN}` is the LLVM version you are using. Add the following to the
+`fpm.toml` for your project:
+```toml
+[features]
+enzyme-lto.flang.flags = "-flto"
+enzyme-lto.flang.link-time-flags = "-fuse-ld=lld -Wl,--load-pass-plugin=$ENZYME_LLD_PLUGIN"
+enzyme-lto.preprocess.cpp.macros = ["HAS_ENZYME"]
+```
+If you are on a non-Unix system then you may need to hard-code
+`ENZYME_LLD_PLUGIN` rather than using an environment variable.
 
 ## Function hooks for differentiation
 
